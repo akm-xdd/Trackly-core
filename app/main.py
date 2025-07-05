@@ -3,6 +3,7 @@ Trackly FastAPI application
 """
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from app.databases.postgres import test_connection
 from app.routes.user_routes import router as user_router
 from app.routes.issue_routes import router as issue_router
@@ -14,6 +15,14 @@ app = FastAPI(
     title="Trackly API",
     description="Issues & Insights Tracker",
     version="1.0.0"
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["*"],
 )
 
 # Include routers
