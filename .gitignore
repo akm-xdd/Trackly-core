@@ -3,3 +3,4 @@
 /test.sh
 /test_api.py
 /venv
+*.sh

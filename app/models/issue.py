@@ -4,7 +4,7 @@ Issue model
 
 from datetime import datetime
 from enum import Enum
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional
 import uuid
 
@@ -28,7 +28,7 @@ class IssueStatus(str, Enum):
 
 class IssueCreate(BaseModel):
     """Create new issue"""
-    title: str
+    title: str =  Field(..., min_length=1, max_length=255, description="Title of the issue")
     description: str
     severity: IssueSeverity = IssueSeverity.MEDIUM
     file_url: Optional[str] = None

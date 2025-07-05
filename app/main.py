@@ -7,6 +7,7 @@ from app.databases.postgres import test_connection
 from app.routes.user_routes import router as user_router
 from app.routes.issue_routes import router as issue_router
 from app.routes.file_routes import router as file_router
+from app.routes.auth_routes import router as auth_router
 
 # Create FastAPI app
 app = FastAPI(
@@ -19,6 +20,7 @@ app = FastAPI(
 app.include_router(user_router, prefix="/api")
 app.include_router(issue_router, prefix="/api")
 app.include_router(file_router, prefix="/api")
+app.include_router(auth_router, prefix="/api")
 
 # Startup event
 @app.on_event("startup")
