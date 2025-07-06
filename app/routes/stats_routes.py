@@ -27,17 +27,14 @@ def get_daily_stats(
     return StatsService.get_all_daily_stats(db, limit=limit)
 
 
-@router.get("/daily/{target_date}", response_model=DailyStatsResponse)
-def get_daily_stats_by_date(
-    target_date: date,
+@router.get("/daily", response_model=List[DailyStatsResponse])
+def get_daily_stats(
+    limit: int = Query(30, ge=1, le=365, description="Number of days to return"),
     db: Session = Depends(get_db),
-    current_user: UserResponse = Depends(require_maintainer_or_admin)
+    current_user: UserResponse = Depends(require_maintainer_or_admin)  # Keep admin-only
 ):
-    """Get daily statistics for specific date (MAINTAINER+ only)"""
-    stats = StatsService.get_daily_stats(db, target_date)
-    if not stats:
-        raise HTTPException(status_code=404, detail=f"No statistics found for {target_date}")
-    return stats
+    """Get daily statistics (MAINTAINER+ only)"""
+    return StatsService.get_all_daily_stats(db, limit=limit)
 
 
 @router.post("/aggregate")

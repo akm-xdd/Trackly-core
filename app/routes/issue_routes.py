@@ -270,28 +270,40 @@ async def get_user_issues(
 @router.get("/stats/count")
 async def get_issues_count(
     db: Session = Depends(get_db),
-    current_user: UserResponse = Depends(require_maintainer_or_admin)
+    current_user: UserResponse = Depends(require_any_role)
 ):
-    """Get total issues count (MAINTAINER+ only)"""
-    count = IssueService.get_issues_count(db)
+    """Get total issues count (role-based)"""
+    count = IssueService.get_issues_count(
+        db, 
+        user_id=current_user.id, 
+        user_role=current_user.role.value
+    )
     return {"total_issues": count}
 
 
 @router.get("/stats/by-status")
 async def get_issues_by_status_stats(
     db: Session = Depends(get_db),
-    current_user: UserResponse = Depends(require_maintainer_or_admin)
+    current_user: UserResponse = Depends(require_any_role)
 ):
-    """Get issues count grouped by status (MAINTAINER+ only)"""
-    stats = IssueService.get_issues_count_by_status(db)
+    """Get issues count grouped by status (role-based)"""
+    stats = IssueService.get_issues_count_by_status(
+        db, 
+        user_id=current_user.id, 
+        user_role=current_user.role.value
+    )
     return {"issues_by_status": stats}
 
 
 @router.get("/stats/by-severity")
 async def get_issues_by_severity_stats(
     db: Session = Depends(get_db),
-    current_user: UserResponse = Depends(require_maintainer_or_admin)
+    current_user: UserResponse = Depends(require_any_role)
 ):
-    """Get issues count grouped by severity (MAINTAINER+ only)"""
-    stats = IssueService.get_issues_count_by_severity(db)
+    """Get issues count grouped by severity (role-based)"""
+    stats = IssueService.get_issues_count_by_severity(
+        db, 
+        user_id=current_user.id, 
+        user_role=current_user.role.value
+    )
     return {"issues_by_severity": stats}

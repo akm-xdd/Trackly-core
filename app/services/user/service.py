@@ -5,6 +5,7 @@ from fastapi import HTTPException
 
 from app.schemas.user_schema import UserSchema
 from app.models.user import User, UserCreate, UserUpdate, UserResponse
+from app.utils.auth import hash_password
 
 
 class UserService:
@@ -14,10 +15,13 @@ class UserService:
     def create_user(db: Session, user_data: UserCreate) -> UserResponse:
         """Create new user"""
         try:
+            
+            hashed_password = hash_password(user_data.password)  
+
             # Create user schema object
             db_user = UserSchema(
                 email=user_data.email,
-                password=user_data.password,  # TODO: Hash password later
+                password=hashed_password,
                 full_name=user_data.full_name,
                 role=user_data.role
             )
