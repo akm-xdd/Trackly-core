@@ -68,9 +68,31 @@ async def get_issues(
 
 @router.get("/events")
 async def issue_events_stream(
-    current_user: UserResponse = Depends(require_any_role)
+    token: str = Query(..., description="JWT token for authentication")
 ):
-    """Server-Sent Events stream for real-time issue updates (role-filtered)"""
+    """Server-Sent Events stream for real-time issue updates (ADMIN only)"""
+    
+    # Manually verify token since EventSource doesn't support headers
+    from app.utils.auth import verify_token
+    from app.services.auth.service import AuthService
+    from app.databases.postgres import SessionLocal
+    
+    payload = verify_token(token)
+    if not payload:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    user_id = payload.get("sub")
+    
+    # Get user and verify ADMIN role
+    db = SessionLocal()
+    try:
+        current_user = AuthService.get_current_user(db, user_id)
+        if not current_user:
+            raise HTTPException(status_code=401, detail="User not found")
+        if current_user.role.value != "ADMIN":
+            raise HTTPException(status_code=403, detail="Admin access required")
+    finally:
+        db.close()
     
     async def event_stream():
         queue = await broadcaster.connect()
@@ -84,28 +106,11 @@ async def issue_events_stream(
             }
             yield f"data: {json.dumps(initial_event)}\n\n"
             
-            # Stream events with role-based filtering
+            # Stream all events (no filtering needed since ADMIN-only)
             while True:
                 try:
-                    # Wait for new events
                     message = await asyncio.wait_for(queue.get(), timeout=30.0)
-                    
-                    # Parse the event to check permissions
-                    if message.startswith("data: "):
-                        event_json = message[6:].strip()
-                        try:
-                            event_data = json.loads(event_json)
-                            
-                            # Filter events based on user role
-                            if should_send_event_to_user(event_data, current_user):
-                                yield message
-                            # If filtered out, don't send the event
-                            
-                        except json.JSONDecodeError:
-                            # If we can't parse, send anyway (probably heartbeat)
-                            yield message
-                    else:
-                        yield message
+                    yield message
                         
                 except asyncio.TimeoutError:
                     # Send heartbeat
@@ -121,7 +126,7 @@ async def issue_events_stream(
     
     return StreamingResponse(
         event_stream(),
-        media_type="text/plain",
+        media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",
             "Connection": "keep-alive",

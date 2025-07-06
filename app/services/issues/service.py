@@ -347,7 +347,7 @@ class IssueService:
 
         query = db.query(IssueSchema.severity, func.count(IssueSchema.id))
         
-        if user_role == "REPORTER" and user_role:
+        if user_role == "REPORTER" and user_id:
             query = query.filter(IssueSchema.created_by == user_id)
         
         result = query.group_by(IssueSchema.severity).all()
