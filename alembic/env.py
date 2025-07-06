@@ -10,6 +10,7 @@ from app.databases.postgres import Base
 from app.schemas.user_schema import UserSchema
 from app.schemas.issue_schema import IssueSchema
 from app.schemas.file_schema import FileSchema
+from app.schemas.daily_stats_schema import DailyStatsSchema
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
