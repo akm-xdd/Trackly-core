@@ -4,46 +4,39 @@ from typing import List, Optional, BinaryIO
 from fastapi import HTTPException, UploadFile
 
 from app.schemas.file_schema import FileSchema
+from app.schemas.user_schema import UserSchema
 from app.models.uploads import FileResponse, FileUploadResponse, FileListResponse, FileStatus
 from app.utils.file_id import generate_file_id
 from app.databases.azure_blob import azure_client
 
 
 class UploadService:
-    """File upload CRUD operations"""
     
     @staticmethod
     def upload_file(db: Session, file: UploadFile, uploaded_by: str) -> FileUploadResponse:
-        """Upload file to Azure and save metadata to database"""
         try:
-            # Generate unique file ID
             file_id = generate_file_id()
             
-            # Check for duplicate file_id (very unlikely but safety check)
             existing_file = db.query(FileSchema).filter(FileSchema.file_id == file_id).first()
             while existing_file:
                 file_id = generate_file_id()
                 existing_file = db.query(FileSchema).filter(FileSchema.file_id == file_id).first()
             
-            # Get file content
             file_content = file.file
             original_filename = file.filename or "unknown"
             content_type = file.content_type or "application/octet-stream"
             
-            # Get file size
-            file_content.seek(0, 2)  # Seek to end
+            file_content.seek(0, 2)
             file_size = file_content.tell()
-            file_content.seek(0)  # Reset to beginning
+            file_content.seek(0)
             
-            # Upload to Azure
             file_url = azure_client.upload_file(
                 file_content=file_content,
-                filename=f"{file_id}_{original_filename}",  # Prefix with file_id for uniqueness
+                filename=f"{file_id}_{original_filename}",
                 uploaded_by=uploaded_by,
                 content_type=content_type
             )
             
-            # Create file schema object
             db_file = FileSchema(
                 file_id=file_id,
                 original_filename=original_filename,
@@ -54,12 +47,10 @@ class UploadService:
                 status=FileStatus.ACTIVE
             )
             
-            # Save to database
             db.add(db_file)
             db.commit()
             db.refresh(db_file)
             
-            # Convert to response
             return FileUploadResponse(
                 file_id=db_file.file_id,
                 file_url=db_file.file_url,
@@ -75,15 +66,16 @@ class UploadService:
     
     @staticmethod
     def get_file_by_id(db: Session, file_id: str) -> Optional[FileResponse]:
-        """Get file by ID"""
-        db_file = db.query(FileSchema).filter(
-            FileSchema.file_id == file_id,
-            FileSchema.status == FileStatus.ACTIVE
-        ).first()
+        result = (db.query(FileSchema, UserSchema.full_name.label('uploader_name'))
+                  .join(UserSchema, FileSchema.uploaded_by == UserSchema.id)
+                  .filter(FileSchema.file_id == file_id, FileSchema.status == FileStatus.ACTIVE)
+                  .first())
         
-        if not db_file:
+        if not result:
             return None
             
+        db_file, uploader_name = result
+        
         return FileResponse(
             file_id=db_file.file_id,
             original_filename=db_file.original_filename,
@@ -91,18 +83,17 @@ class UploadService:
             content_type=db_file.content_type,
             file_url=db_file.file_url,
             uploaded_by=db_file.uploaded_by,
+            uploaded_by_name=uploader_name,
             status=db_file.status,
             upload_timestamp=db_file.upload_timestamp
         )
     
     @staticmethod
     def get_all_files(db: Session, skip: int = 0, limit: int = 100) -> FileListResponse:
-        """Get all files with pagination"""
-        # Get total count
         total = db.query(FileSchema).filter(FileSchema.status == FileStatus.ACTIVE).count()
         
-        # Get files
-        db_files = (db.query(FileSchema)
+        db_files = (db.query(FileSchema, UserSchema.full_name.label('uploader_name'))
+                   .join(UserSchema, FileSchema.uploaded_by == UserSchema.id)
                    .filter(FileSchema.status == FileStatus.ACTIVE)
                    .order_by(FileSchema.upload_timestamp.desc())
                    .offset(skip)
@@ -111,16 +102,17 @@ class UploadService:
         
         files = [
             FileResponse(
-                file_id=file.file_id,
-                original_filename=file.original_filename,
-                file_size=file.file_size,
-                content_type=file.content_type,
-                file_url=file.file_url,
-                uploaded_by=file.uploaded_by,
-                status=file.status,
-                upload_timestamp=file.upload_timestamp
+                file_id=row[0].file_id,
+                original_filename=row[0].original_filename,
+                file_size=row[0].file_size,
+                content_type=row[0].content_type,
+                file_url=row[0].file_url,
+                uploaded_by=row[0].uploaded_by,
+                uploaded_by_name=row[1],
+                status=row[0].status,
+                upload_timestamp=row[0].upload_timestamp
             )
-            for file in db_files
+            for row in db_files
         ]
         
         return FileListResponse(
@@ -132,7 +124,6 @@ class UploadService:
     
     @staticmethod
     def delete_file(db: Session, file_id: str) -> bool:
-        """Delete file (soft delete in DB, hard delete from Azure)"""
         db_file = db.query(FileSchema).filter(
             FileSchema.file_id == file_id,
             FileSchema.status == FileStatus.ACTIVE
@@ -142,13 +133,9 @@ class UploadService:
             return False
         
         try:
-            # Delete from Azure Blob Storage
             azure_client.delete_file(db_file.file_url)
-            
-            # Soft delete in database
             db_file.status = FileStatus.DELETED
             db.commit()
-            
             return True
             
         except Exception as e:
@@ -157,12 +144,10 @@ class UploadService:
     
     @staticmethod
     def get_files_count(db: Session) -> int:
-        """Get total active files count"""
         return db.query(FileSchema).filter(FileSchema.status == FileStatus.ACTIVE).count()
     
     @staticmethod
     def get_file_url_by_id(db: Session, file_id: str) -> Optional[str]:
-        """Get file URL by file ID (helper method for issues)"""
         db_file = db.query(FileSchema).filter(
             FileSchema.file_id == file_id,
             FileSchema.status == FileStatus.ACTIVE

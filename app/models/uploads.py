@@ -14,7 +14,7 @@ class FileStatus(str, Enum):
 
 class FileUploadRequest(BaseModel):
     """File upload request (for multipart form data)"""
-    uploaded_by: str  # User ID
+    uploaded_by: str 
 
 
 class FileUploadResponse(BaseModel):
@@ -35,6 +35,7 @@ class FileResponse(BaseModel):
     content_type: str
     file_url: str
     uploaded_by: str
+    uploaded_by_name: Optional[str]
     status: FileStatus
     upload_timestamp: datetime
 

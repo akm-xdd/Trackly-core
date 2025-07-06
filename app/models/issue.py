@@ -50,12 +50,13 @@ class IssueResponse(BaseModel):
     description: str
     severity: IssueSeverity
     status: IssueStatus
-    created_by: str  # User ID
+    created_by: str
+    created_by_name: Optional[str] = None
     file_url: Optional[str] = None
     created_at: datetime
     updated_at: datetime
     updated_by: Optional[str] = None  
-
+    updated_by_name: Optional[str] = None
 
 # Base Issue Model
 

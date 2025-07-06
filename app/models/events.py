@@ -12,5 +12,6 @@ class IssueEvent(BaseModel):
     event_type: EventType
     issue_id: str
     user_id: str 
+    user_name: Optional[str] = None 
     timestamp: datetime
     data: Optional[Any] = None
