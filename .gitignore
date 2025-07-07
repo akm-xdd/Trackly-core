@@ -41,21 +41,6 @@ wheels/
 *.egg
 MANIFEST
 
-# PyCharm
-.idea/
-
-# VSCode
-.vscode/
-*.code-workspace
-
-# OS files
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
 
 # Logs
 *.log
@@ -64,23 +49,3 @@ logs/
 # Docker
 .dockerignore
 
-# Node modules (for client)
-node_modules/
-.next/
-.nuxt/
-.svelte-kit/
-
-# Build outputs
-build/
-dist/
-out/
-
-# Database
-*.db
-*.sqlite
-*.sqlite3
-
-# Temporary files
-*.tmp
-*.temp
-*~

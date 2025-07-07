@@ -1,0 +1,60 @@
+services:
+  # PostgreSQL Database
+  db:
+    image: postgres:15-alpine
+    container_name: trackly-server-db
+    environment:
+      POSTGRES_DB: trackly
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 1144
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"  # Different port to avoid conflicts
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres", "-d", "trackly"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - trackly-server-network
+
+  # FastAPI Backend
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: trackly-server-only
+    environment:
+      - DATABASE_URL=postgresql://postgres:1144@db:5432/trackly
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-your-secret-key-change-in-production}
+      - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES:-30}
+      - REFRESH_TOKEN_EXPIRE_DAYS=${REFRESH_TOKEN_EXPIRE_DAYS:-7}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:5173}
+      - ENVIRONMENT=production
+      - DEBUG=False
+      - AZURE_STORAGE_ACCOUNT_NAME=${AZURE_STORAGE_ACCOUNT_NAME}
+      - AZURE_STORAGE_CONTAINER_NAME=${AZURE_STORAGE_CONTAINER_NAME}
+      - AZURE_STORAGE_ACCOUNT_KEY=${AZURE_STORAGE_ACCOUNT_KEY}
+      - AZURE_STORAGE_CONNECTION_STRING=${AZURE_STORAGE_CONNECTION_STRING}
+      - STATS_AGGREGATION_INTERVAL_MINUTES=${STATS_AGGREGATION_INTERVAL_MINUTES:-30}
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - trackly-server-network
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  trackly-server-network:
+    driver: bridge

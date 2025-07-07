@@ -98,6 +98,7 @@ def exchange_google_code(
     try:
         code = code_data.get('code')
         if not code:
+            print("No authorization code provided")
             raise HTTPException(status_code=400, detail="Authorization code required")
         
         # Debug: Print environment variables (remove in production)
@@ -127,12 +128,14 @@ def exchange_google_code(
         print(f"Token response text: {token_response.text}")
         
         if not token_response.ok:
+            print(f"Token exchange failed: {token_response.text}")
             raise HTTPException(status_code=400, detail=f"Failed to exchange code for token: {token_response.text}")
         
         token_result = token_response.json()
         access_token = token_result.get('access_token')
         
         if not access_token:
+            print("No access token received")
             raise HTTPException(status_code=400, detail="No access token received")
         
         # Get user info from Google
@@ -141,6 +144,7 @@ def exchange_google_code(
         )
         
         if not user_response.ok:
+            print(f"Failed to get user info: {user_response.text}")
             raise HTTPException(status_code=400, detail="Failed to get user info")
         
         user_info = user_response.json()
