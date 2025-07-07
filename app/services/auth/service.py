@@ -15,7 +15,7 @@ from app.utils.auth import (
     verify_token,
     ACCESS_TOKEN_EXPIRE_MINUTES
 )
-
+from app.utils.metrics import track_login_attempt
 
 class AuthService:
     """Authentication service"""
@@ -85,12 +85,14 @@ class AuthService:
             UserSchema.email == login_data.email).first()
 
         if not db_user:
+            track_login_attempt(success=False, method='password')
             raise HTTPException(
                 status_code=401,
                 detail="Invalid email or password")
 
         # Verify password
         if not verify_password(login_data.password, db_user.password):
+            track_login_attempt(success=False, method='password')
             raise HTTPException(
                 status_code=401,
                 detail="Invalid email or password")
@@ -119,6 +121,9 @@ class AuthService:
             refresh_token=refresh_token,
             expires_in=ACCESS_TOKEN_EXPIRE_MINUTES * 60
         )
+
+        track_login_attempt(success=True, method='password')
+
 
         return LoginResponse(user=user_response, tokens=tokens)
 

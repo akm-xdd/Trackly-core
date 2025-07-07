@@ -8,6 +8,7 @@ from app.models.events import IssueEvent, EventType
 from app.schemas.issue_schema import IssueSchema
 from app.schemas.user_schema import UserSchema
 from app.models.issue import IssueCreate, IssueUpdate, IssueResponse, IssueStatus
+from app.utils.metrics import track_issue_created, update_all_issues_gauge
 
 
 class IssueService:
@@ -32,6 +33,11 @@ class IssueService:
 
             creator = db.query(UserSchema).filter(
                 UserSchema.id == created_by).first()
+
+            track_issue_created(
+                severity=issue_data.severity.value,
+                user_role=creator.role.value if creator else "unknown"
+            )
 
             response = IssueResponse(
                 id=db_issue.id,
@@ -373,6 +379,7 @@ class IssueService:
             user_role: str = None) -> dict:
         """Get issues count grouped by severity with role-based filtering"""
         from sqlalchemy import func
+        from app.utils.metrics import update_all_issues_gauge
 
         query = db.query(IssueSchema.severity, func.count(IssueSchema.id))
 
@@ -380,4 +387,11 @@ class IssueService:
             query = query.filter(IssueSchema.created_by == user_id)
 
         result = query.group_by(IssueSchema.severity).all()
-        return {severity.value: count for severity, count in result}
+
+        # Convert result to dictionary for metrics
+        severity_counts = {severity.value: count for severity, count in result}
+        
+        # Update Prometheus gauge with the counts
+        update_all_issues_gauge(severity_counts)
+
+        return severity_counts

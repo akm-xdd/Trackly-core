@@ -5,6 +5,8 @@ Trackly FastAPI application with background job scheduling
 import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi import Response
+
 from contextlib import asynccontextmanager
 
 from app.databases.postgres import test_connection
@@ -14,7 +16,7 @@ from app.routes.file_routes import router as file_router
 from app.routes.auth_routes import router as auth_router
 from app.routes.stats_routes import router as stats_router
 from app.utils.scheduler import start_background_scheduler, stop_background_scheduler
-
+from app.utils.metrics import get_metrics, get_metrics_content_type
 # Set up logging
 logging.basicConfig(
     level=logging.INFO,
@@ -119,6 +121,10 @@ def health_check():
         }
     }
 
+@app.get("/metrics")
+def metrics():
+    """Prometheus metrics endpoint"""
+    return Response(get_metrics(), media_type=get_metrics_content_type())
 
 if __name__ == "__main__":
     import uvicorn
