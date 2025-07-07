@@ -17,65 +17,68 @@ logger = logging.getLogger(__name__)
 
 class SchedulerManager:
     """Manages background job scheduling"""
-    
+
     def __init__(self):
         self.scheduler = None
         self._setup_scheduler()
-    
+
     def _setup_scheduler(self):
         """Initialize the scheduler with Windows-compatible settings"""
         # Use MemoryJobStore for simplicity and Windows compatibility
         jobstores = {
             'default': MemoryJobStore()
         }
-        
+
         # Configure scheduler with conservative settings for Windows
         job_defaults = {
             'coalesce': False,  # Don't combine multiple missed executions
             'max_instances': 1,  # Only one instance of each job at a time
             'misfire_grace_time': 300  # 5 minutes grace period for missed jobs
         }
-        
+
         # Create BackgroundScheduler (works well on Windows)
         self.scheduler = BackgroundScheduler(
             jobstores=jobstores,
             job_defaults=job_defaults,
             timezone='UTC'  # Use UTC to avoid Windows timezone issues
         )
-        
+
         logger.info("Scheduler initialized with Windows-compatible settings")
-    
+
     def start_scheduler(self):
         """Start the background scheduler"""
         if self.scheduler and not self.scheduler.running:
             try:
                 self.scheduler.start()
                 logger.info("Background scheduler started successfully")
-                
+
                 # Schedule the daily aggregation job
                 self._schedule_daily_aggregation()
-                
+
                 # Register shutdown handler for graceful cleanup
                 atexit.register(self.shutdown_scheduler)
-                
+
             except Exception as e:
                 logger.error(f"Failed to start scheduler: {str(e)}")
                 raise e
-    
+
     def _schedule_daily_aggregation(self):
         """Schedule the 30-minute aggregation job"""
         try:
             # Add the job to run every 30 minutes
             self.scheduler.add_job(
                 func=run_daily_aggregation,
-                trigger=IntervalTrigger(minutes=int(os.getenv('STATS_AGGREGATION_INTERVAL_MINUTES', 30))),
+                trigger=IntervalTrigger(
+                    minutes=int(
+                        os.getenv(
+                            'STATS_AGGREGATION_INTERVAL_MINUTES',
+                            30))),
                 id='daily_stats_aggregation',
                 name='Daily Stats Aggregation Job',
                 replace_existing=True,
-                coalesce=True, 
-                max_instances=1 
-            )
-            
+                coalesce=True,
+                max_instances=1)
+
             # Optional: Also schedule at specific times (e.g., every hour at minute 0 and 30)
             # Uncomment the lines below if you prefer cron-style scheduling
             # self.scheduler.add_job(
@@ -87,17 +90,18 @@ class SchedulerManager:
             #     coalesce=True,
             #     max_instances=1
             # )
-            
-            logger.info("Daily aggregation job scheduled to run every 30 minutes")
-            
+
+            logger.info(
+                "Daily aggregation job scheduled to run every 30 minutes")
+
             # Run once immediately to populate initial data
             logger.info("Running initial aggregation...")
             run_daily_aggregation()
-            
+
         except Exception as e:
             logger.error(f"Failed to schedule daily aggregation job: {str(e)}")
             raise e
-    
+
     def shutdown_scheduler(self):
         """Gracefully shutdown the scheduler"""
         if self.scheduler and self.scheduler.running:
@@ -107,15 +111,15 @@ class SchedulerManager:
                 logger.info("Background scheduler shut down successfully")
             except Exception as e:
                 logger.error(f"Error shutting down scheduler: {str(e)}")
-    
+
     def get_job_status(self):
         """Get status of scheduled jobs"""
         if not self.scheduler:
             return {"status": "not_initialized"}
-        
+
         if not self.scheduler.running:
             return {"status": "stopped"}
-        
+
         jobs = []
         for job in self.scheduler.get_jobs():
             next_run = job.next_run_time.isoformat() if job.next_run_time else None
@@ -125,13 +129,12 @@ class SchedulerManager:
                 "next_run": next_run,
                 "trigger": str(job.trigger)
             })
-        
+
         return {
             "status": "running",
             "jobs": jobs,
-            "scheduler_state": "running" if self.scheduler.running else "stopped"
-        }
-    
+            "scheduler_state": "running" if self.scheduler.running else "stopped"}
+
     def trigger_manual_aggregation(self):
         """Manually trigger the aggregation job"""
         try:

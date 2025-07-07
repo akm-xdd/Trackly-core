@@ -14,7 +14,7 @@ class FileStatus(str, Enum):
 
 class FileUploadRequest(BaseModel):
     """File upload request (for multipart form data)"""
-    uploaded_by: str 
+    uploaded_by: str
 
 
 class FileUploadResponse(BaseModel):
@@ -60,12 +60,12 @@ class File(BaseModel):
     uploaded_by: str
     status: FileStatus = FileStatus.ACTIVE
     upload_timestamp: datetime = None
-    
+
     def __init__(self, **data):
         if not data.get('upload_timestamp'):
             data['upload_timestamp'] = datetime.utcnow()
         super().__init__(**data)
-    
+
     def to_response(self) -> FileResponse:
         """Convert to response"""
         return FileResponse(

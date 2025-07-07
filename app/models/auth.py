@@ -44,12 +44,15 @@ class RefreshResponse(BaseModel):
     token_type: str = "bearer"
     expires_in: int
 
+
 class GoogleLoginRequest(BaseModel):
     """Google OAuth login request"""
     email: EmailStr
     name: str
 
 # Internal Models
+
+
 class TokenPayload(BaseModel):
     """JWT token payload"""
     sub: str  # user ID

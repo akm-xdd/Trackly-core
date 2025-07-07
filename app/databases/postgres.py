@@ -9,7 +9,7 @@ load_dotenv()
 
 # Database URL
 DATABASE_URL = os.getenv(
-    "DATABASE_URL", 
+    "DATABASE_URL",
     "postgresql://postgres:1144@localhost:5432/trackly"
 )
 
@@ -20,6 +20,8 @@ Base = declarative_base()
 metadata = MetaData()
 
 # Dependency to get DB session
+
+
 def get_db():
     """Get database session"""
     db = SessionLocal()
@@ -29,11 +31,15 @@ def get_db():
         db.close()
 
 # Create tables
+
+
 def create_tables():
     """Create all tables"""
     Base.metadata.create_all(bind=engine)
 
 # Test connection
+
+
 def test_connection():
     """Test database connection"""
     try:

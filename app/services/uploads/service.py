@@ -11,32 +11,37 @@ from app.databases.azure_blob import azure_client
 
 
 class UploadService:
-    
+
     @staticmethod
-    def upload_file(db: Session, file: UploadFile, uploaded_by: str) -> FileUploadResponse:
+    def upload_file(
+            db: Session,
+            file: UploadFile,
+            uploaded_by: str) -> FileUploadResponse:
         try:
             file_id = generate_file_id()
-            
-            existing_file = db.query(FileSchema).filter(FileSchema.file_id == file_id).first()
+
+            existing_file = db.query(FileSchema).filter(
+                FileSchema.file_id == file_id).first()
             while existing_file:
                 file_id = generate_file_id()
-                existing_file = db.query(FileSchema).filter(FileSchema.file_id == file_id).first()
-            
+                existing_file = db.query(FileSchema).filter(
+                    FileSchema.file_id == file_id).first()
+
             file_content = file.file
             original_filename = file.filename or "unknown"
             content_type = file.content_type or "application/octet-stream"
-            
+
             file_content.seek(0, 2)
             file_size = file_content.tell()
             file_content.seek(0)
-            
+
             file_url = azure_client.upload_file(
                 file_content=file_content,
                 filename=f"{file_id}_{original_filename}",
                 uploaded_by=uploaded_by,
                 content_type=content_type
             )
-            
+
             db_file = FileSchema(
                 file_id=file_id,
                 original_filename=original_filename,
@@ -46,11 +51,11 @@ class UploadService:
                 uploaded_by=uploaded_by,
                 status=FileStatus.ACTIVE
             )
-            
+
             db.add(db_file)
             db.commit()
             db.refresh(db_file)
-            
+
             return FileUploadResponse(
                 file_id=db_file.file_id,
                 file_url=db_file.file_url,
@@ -59,23 +64,28 @@ class UploadService:
                 content_type=db_file.content_type,
                 upload_timestamp=db_file.upload_timestamp
             )
-            
+
         except Exception as e:
             db.rollback()
-            raise HTTPException(status_code=500, detail=f"Failed to upload file: {str(e)}")
-    
+            raise HTTPException(status_code=500,
+                                detail=f"Failed to upload file: {str(e)}")
+
     @staticmethod
     def get_file_by_id(db: Session, file_id: str) -> Optional[FileResponse]:
-        result = (db.query(FileSchema, UserSchema.full_name.label('uploader_name'))
-                  .join(UserSchema, FileSchema.uploaded_by == UserSchema.id)
-                  .filter(FileSchema.file_id == file_id, FileSchema.status == FileStatus.ACTIVE)
-                  .first())
-        
+        result = (
+            db.query(
+                FileSchema,
+                UserSchema.full_name.label('uploader_name')) .join(
+                UserSchema,
+                FileSchema.uploaded_by == UserSchema.id) .filter(
+                FileSchema.file_id == file_id,
+                FileSchema.status == FileStatus.ACTIVE) .first())
+
         if not result:
             return None
-            
+
         db_file, uploader_name = result
-        
+
         return FileResponse(
             file_id=db_file.file_id,
             original_filename=db_file.original_filename,
@@ -87,19 +97,23 @@ class UploadService:
             status=db_file.status,
             upload_timestamp=db_file.upload_timestamp
         )
-    
+
     @staticmethod
-    def get_all_files(db: Session, skip: int = 0, limit: int = 100) -> FileListResponse:
-        total = db.query(FileSchema).filter(FileSchema.status == FileStatus.ACTIVE).count()
-        
+    def get_all_files(
+            db: Session,
+            skip: int = 0,
+            limit: int = 100) -> FileListResponse:
+        total = db.query(FileSchema).filter(
+            FileSchema.status == FileStatus.ACTIVE).count()
+
         db_files = (db.query(FileSchema, UserSchema.full_name.label('uploader_name'))
-                   .join(UserSchema, FileSchema.uploaded_by == UserSchema.id)
-                   .filter(FileSchema.status == FileStatus.ACTIVE)
-                   .order_by(FileSchema.upload_timestamp.desc())
-                   .offset(skip)
-                   .limit(limit)
-                   .all())
-        
+                    .join(UserSchema, FileSchema.uploaded_by == UserSchema.id)
+                    .filter(FileSchema.status == FileStatus.ACTIVE)
+                    .order_by(FileSchema.upload_timestamp.desc())
+                    .offset(skip)
+                    .limit(limit)
+                    .all())
+
         files = [
             FileResponse(
                 file_id=row[0].file_id,
@@ -114,43 +128,45 @@ class UploadService:
             )
             for row in db_files
         ]
-        
+
         return FileListResponse(
             files=files,
             total=total,
             skip=skip,
             limit=limit
         )
-    
+
     @staticmethod
     def delete_file(db: Session, file_id: str) -> bool:
         db_file = db.query(FileSchema).filter(
             FileSchema.file_id == file_id,
             FileSchema.status == FileStatus.ACTIVE
         ).first()
-        
+
         if not db_file:
             return False
-        
+
         try:
             azure_client.delete_file(db_file.file_url)
             db_file.status = FileStatus.DELETED
             db.commit()
             return True
-            
+
         except Exception as e:
             db.rollback()
-            raise HTTPException(status_code=500, detail=f"Failed to delete file: {str(e)}")
-    
+            raise HTTPException(status_code=500,
+                                detail=f"Failed to delete file: {str(e)}")
+
     @staticmethod
     def get_files_count(db: Session) -> int:
-        return db.query(FileSchema).filter(FileSchema.status == FileStatus.ACTIVE).count()
-    
+        return db.query(FileSchema).filter(
+            FileSchema.status == FileStatus.ACTIVE).count()
+
     @staticmethod
     def get_file_url_by_id(db: Session, file_id: str) -> Optional[str]:
         db_file = db.query(FileSchema).filter(
             FileSchema.file_id == file_id,
             FileSchema.status == FileStatus.ACTIVE
         ).first()
-        
+
         return db_file.file_url if db_file else None

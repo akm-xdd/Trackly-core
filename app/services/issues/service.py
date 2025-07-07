@@ -13,7 +13,10 @@ from app.models.issue import IssueCreate, IssueUpdate, IssueResponse, IssueStatu
 class IssueService:
 
     @staticmethod
-    def create_issue(db: Session, issue_data: IssueCreate, created_by: str) -> IssueResponse:
+    def create_issue(
+            db: Session,
+            issue_data: IssueCreate,
+            created_by: str) -> IssueResponse:
         try:
             db_issue = IssueSchema(
                 title=issue_data.title,
@@ -101,7 +104,10 @@ class IssueService:
         )
 
     @staticmethod
-    def get_all_issues(db: Session, skip: int = 0, limit: int = 100) -> List[IssueResponse]:
+    def get_all_issues(
+            db: Session,
+            skip: int = 0,
+            limit: int = 100) -> List[IssueResponse]:
         creator = aliased(UserSchema)
         updater = aliased(UserSchema)
 
@@ -136,7 +142,11 @@ class IssueService:
         ]
 
     @staticmethod
-    def get_issues_by_user(db: Session, user_id: str, skip: int = 0, limit: int = 100) -> List[IssueResponse]:
+    def get_issues_by_user(
+            db: Session,
+            user_id: str,
+            skip: int = 0,
+            limit: int = 100) -> List[IssueResponse]:
         creator = aliased(UserSchema)
         updater = aliased(UserSchema)
 
@@ -172,7 +182,11 @@ class IssueService:
         ]
 
     @staticmethod
-    def get_issues_by_status(db: Session, status: IssueStatus, skip: int = 0, limit: int = 100) -> List[IssueResponse]:
+    def get_issues_by_status(
+            db: Session,
+            status: IssueStatus,
+            skip: int = 0,
+            limit: int = 100) -> List[IssueResponse]:
         creator = aliased(UserSchema)
         updater = aliased(UserSchema)
 
@@ -208,7 +222,11 @@ class IssueService:
         ]
 
     @staticmethod
-    def update_issue(db: Session, issue_id: str, issue_data: IssueUpdate, updated_by: str) -> Optional[IssueResponse]:
+    def update_issue(
+            db: Session,
+            issue_id: str,
+            issue_data: IssueUpdate,
+            updated_by: str) -> Optional[IssueResponse]:
         db_issue = db.query(IssueSchema).filter(
             IssueSchema.id == issue_id).first()
 
@@ -273,7 +291,10 @@ class IssueService:
                 status_code=500, detail=f"Failed to update issue: {str(e)}")
 
     @staticmethod
-    def delete_issue(db: Session, issue_id: str, deleted_by: str = None) -> bool:
+    def delete_issue(
+            db: Session,
+            issue_id: str,
+            deleted_by: str = None) -> bool:
         db_issue = db.query(IssueSchema).filter(
             IssueSchema.id == issue_id).first()
 
@@ -315,40 +336,48 @@ class IssueService:
             db.rollback()
             raise HTTPException(
                 status_code=500, detail=f"Failed to delete issue: {str(e)}")
-    
 
     @staticmethod
-    def get_issues_count(db: Session, user_id: str = None, user_role: str = None) -> int:
+    def get_issues_count(
+            db: Session,
+            user_id: str = None,
+            user_role: str = None) -> int:
         """Get total issues count with role-based filtering"""
         query = db.query(IssueSchema)
-        
+
         if user_role == "REPORTER" and user_id:
             query = query.filter(IssueSchema.created_by == user_id)
-        
+
         return query.count()
 
     @staticmethod
-    def get_issues_count_by_status(db: Session, user_id: str = None, user_role: str = None) -> dict:
+    def get_issues_count_by_status(
+            db: Session,
+            user_id: str = None,
+            user_role: str = None) -> dict:
         """Get issues count grouped by status with role-based filtering"""
         from sqlalchemy import func
 
         query = db.query(IssueSchema.status, func.count(IssueSchema.id))
-        
+
         if user_role == "REPORTER" and user_id:
             query = query.filter(IssueSchema.created_by == user_id)
-        
+
         result = query.group_by(IssueSchema.status).all()
         return {status.value: count for status, count in result}
 
     @staticmethod
-    def get_issues_count_by_severity(db: Session, user_id: str = None, user_role: str = None) -> dict:
+    def get_issues_count_by_severity(
+            db: Session,
+            user_id: str = None,
+            user_role: str = None) -> dict:
         """Get issues count grouped by severity with role-based filtering"""
         from sqlalchemy import func
 
         query = db.query(IssueSchema.severity, func.count(IssueSchema.id))
-        
+
         if user_role == "REPORTER" and user_id:
             query = query.filter(IssueSchema.created_by == user_id)
-        
+
         result = query.group_by(IssueSchema.severity).all()
         return {severity.value: count for severity, count in result}

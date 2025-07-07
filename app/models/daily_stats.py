@@ -62,14 +62,14 @@ class DailyStats(BaseModel):
     severity_critical: int = 0
     total_issues: int = 0
     created_at: datetime = None
-    
+
     def __init__(self, **data):
         if not data.get('id'):
             data['id'] = str(uuid.uuid4())
         if not data.get('created_at'):
             data['created_at'] = datetime.utcnow()
         super().__init__(**data)
-    
+
     def to_response(self) -> DailyStatsResponse:
         """Convert to response"""
         return DailyStatsResponse(

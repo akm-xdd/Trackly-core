@@ -1,6 +1,7 @@
 import random
 import string
 
+
 def generate_file_id():
     """Generate a unique file ID"""
     # pool of uppercase letters + digits

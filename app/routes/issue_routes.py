@@ -71,18 +71,18 @@ async def issue_events_stream(
     token: str = Query(..., description="JWT token for authentication")
 ):
     """Server-Sent Events stream for real-time issue updates (ADMIN only)"""
-    
+
     # Manually verify token since EventSource doesn't support headers
     from app.utils.auth import verify_token
     from app.services.auth.service import AuthService
     from app.databases.postgres import SessionLocal
-    
+
     payload = verify_token(token)
     if not payload:
         raise HTTPException(status_code=401, detail="Invalid token")
-    
+
     user_id = payload.get("sub")
-    
+
     # Get user and verify ADMIN role
     db = SessionLocal()
     try:
@@ -91,7 +91,7 @@ async def issue_events_stream(
             raise HTTPException(status_code=401, detail="User not found")
     finally:
         db.close()
-    
+
     async def event_stream():
         queue = await broadcaster.connect()
         try:
@@ -103,18 +103,19 @@ async def issue_events_stream(
                 "user_role": current_user.role.value
             }
             yield f"data: {json.dumps(initial_event)}\n\n"
-            
+
             # Stream all events (no filtering needed since ADMIN-only)
             while True:
                 try:
                     message = await asyncio.wait_for(queue.get(), timeout=30.0)
                     try:
 
-                        event_data = json.loads(message.replace("data: ", "").strip())
+                        event_data = json.loads(
+                            message.replace("data: ", "").strip())
                         if should_send_event_to_user(event_data, current_user):
-                            
+
                             yield message
-                        
+
                     except json.JSONDecodeError:
                         yield message
                 except asyncio.TimeoutError:
@@ -128,7 +129,7 @@ async def issue_events_stream(
                     break
         finally:
             broadcaster.disconnect(queue)
-    
+
     return StreamingResponse(
         event_stream(),
         media_type="text/event-stream",
@@ -143,30 +144,30 @@ async def issue_events_stream(
 
 def should_send_event_to_user(event_data: dict, user: UserResponse) -> bool:
     """Check if user should receive this event based on RBAC rules"""
-    
+
     # System events (connected, heartbeat) - send to everyone
     if event_data.get("type") in ["connected", "heartbeat"]:
         return True
-    
+
     # ADMIN and MAINTAINER can see all issue events
     if user.role in [UserRole.ADMIN, UserRole.MAINTAINER]:
         return True
-    
+
     # REPORTER can only see events for issues they created
     if user.role == UserRole.REPORTER:
         # Check if this is their issue
         issue_data = event_data.get("data", {})
         created_by = issue_data.get("created_by")
-        
+
         # For create/update events, check created_by field
         if created_by == user.id:
             return True
-            
+
         # For delete events, check if they were the one who deleted it
         if event_data.get("type") == "issue_deleted":
             if event_data.get("user_id") == user.id:
                 return True
-    
+
     return False
 
 
@@ -224,8 +225,7 @@ async def update_issue(
         if issue_data.status is not None or issue_data.severity is not None:
             raise HTTPException(
                 status_code=403,
-                detail="Reporters can only update title and description of their own issues"
-            )
+                detail="Reporters can only update title and description of their own issues")
 
     issue = IssueService.update_issue(
         db, issue_id, issue_data, current_user.id)
@@ -284,8 +284,8 @@ async def get_issues_count(
 ):
     """Get total issues count (role-based)"""
     count = IssueService.get_issues_count(
-        db, 
-        user_id=current_user.id, 
+        db,
+        user_id=current_user.id,
         user_role=current_user.role.value
     )
     return {"total_issues": count}
@@ -298,8 +298,8 @@ async def get_issues_by_status_stats(
 ):
     """Get issues count grouped by status (role-based)"""
     stats = IssueService.get_issues_count_by_status(
-        db, 
-        user_id=current_user.id, 
+        db,
+        user_id=current_user.id,
         user_role=current_user.role.value
     )
     return {"issues_by_status": stats}
@@ -312,8 +312,8 @@ async def get_issues_by_severity_stats(
 ):
     """Get issues count grouped by severity (role-based)"""
     stats = IssueService.get_issues_count_by_severity(
-        db, 
-        user_id=current_user.id, 
+        db,
+        user_id=current_user.id,
         user_role=current_user.role.value
     )
     return {"issues_by_severity": stats}

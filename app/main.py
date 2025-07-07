@@ -28,35 +28,35 @@ async def lifespan(app: FastAPI):
     """Application lifespan manager for startup and shutdown events"""
     # Startup
     logger.info("🚀 Starting Trackly API...")
-    
+
     # Test database connection
     if test_connection():
         logger.info("✅ Database connection successful")
         logger.info("📋 Note: Use 'alembic upgrade head' to apply migrations")
     else:
         logger.error("❌ Database connection failed")
-    
+
     # Start background scheduler
     try:
         start_background_scheduler()
         logger.info("📊 Background scheduler started successfully")
     except Exception as e:
         logger.error(f"❌ Failed to start background scheduler: {str(e)}")
-    
+
     logger.info("🎯 Trackly API startup complete")
-    
+
     yield
-    
+
     # Shutdown
     logger.info("🛑 Shutting down Trackly API...")
-    
+
     # Stop background scheduler
     try:
         stop_background_scheduler()
         logger.info("📊 Background scheduler stopped successfully")
     except Exception as e:
         logger.error(f"❌ Error stopping background scheduler: {str(e)}")
-    
+
     logger.info("👋 Trackly API shutdown complete")
 
 
@@ -85,6 +85,8 @@ app.include_router(file_router, prefix="/api")
 app.include_router(stats_router, prefix="/api")  # New stats routes
 
 # Root endpoint
+
+
 @app.get("/")
 def root():
     """Root endpoint"""
@@ -94,7 +96,7 @@ def root():
         "version": "1.0.0",
         "features": [
             "Issue tracking with RBAC",
-            "File uploads to Azure Blob Storage", 
+            "File uploads to Azure Blob Storage",
             "Real-time SSE updates",
             "Background job scheduling",
             "Daily statistics aggregation"
@@ -103,6 +105,8 @@ def root():
     }
 
 # Health check
+
+
 @app.get("/health")
 def health_check():
     """Health check endpoint"""

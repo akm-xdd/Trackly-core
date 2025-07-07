@@ -9,10 +9,12 @@ from pydantic import BaseModel, EmailStr
 import uuid
 
 # User Roles Enum
+
+
 class UserRole(str, Enum):
     """User roles"""
     ADMIN = "ADMIN"
-    MAINTAINER = "MAINTAINER" 
+    MAINTAINER = "MAINTAINER"
     REPORTER = "REPORTER"
 
 
@@ -32,7 +34,6 @@ class UserUpdate(BaseModel):
     role: Optional[UserRole] = None
 
 
-
 class UserResponse(BaseModel):
     """User response (no password)"""
     id: str
@@ -48,18 +49,18 @@ class User(BaseModel):
     """Internal user model"""
     id: str = ""
     email: str
-    password: str 
+    password: str
     full_name: str
     role: UserRole
     created_at: datetime = None
-    
+
     def __init__(self, **data):
         if not data.get('id'):
             data['id'] = str(uuid.uuid4())
         if not data.get('created_at'):
             data['created_at'] = datetime.utcnow()
         super().__init__(**data)
-    
+
     def to_response(self) -> UserResponse:
         """Convert to safe response"""
         return UserResponse(
