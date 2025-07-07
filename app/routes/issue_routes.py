@@ -89,8 +89,6 @@ async def issue_events_stream(
         current_user = AuthService.get_current_user(db, user_id)
         if not current_user:
             raise HTTPException(status_code=401, detail="User not found")
-        if current_user.role.value != "ADMIN":
-            raise HTTPException(status_code=403, detail="Admin access required")
     finally:
         db.close()
     
@@ -110,8 +108,15 @@ async def issue_events_stream(
             while True:
                 try:
                     message = await asyncio.wait_for(queue.get(), timeout=30.0)
-                    yield message
+                    try:
+
+                        event_data = json.loads(message.replace("data: ", "").strip())
+                        if should_send_event_to_user(event_data, current_user):
+                            
+                            yield message
                         
+                    except json.JSONDecodeError:
+                        yield message
                 except asyncio.TimeoutError:
                     # Send heartbeat
                     heartbeat = {
