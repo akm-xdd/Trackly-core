@@ -20,6 +20,7 @@ from app.models.auth import (
 )
 from app.utils.auth import create_access_token, create_refresh_token
 from app.schemas.user_schema import UserSchema
+from app.utils.metrics import track_login_attempt
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 30))
@@ -237,6 +238,7 @@ def google_login(
         )
 
         print(f"Successfully authenticated user: {db_user.email}")
+        track_login_attempt(success=True, method='google')
         return LoginResponse(user=user_response, tokens=tokens)
 
     except HTTPException:
