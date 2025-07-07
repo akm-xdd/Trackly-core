@@ -203,3 +203,23 @@ alembic upgrade head
 ### Background Jobs
 
 Jobs are defined in `app/utils/scheduler.py` and automatically started with the application.
+
+
+### Tests
+Run tests with:
+
+```bash
+pytest --cov=app tests/
+```
+
+The current test suite includes:
+- Authentication tests
+- User service tests
+- Issue service tests
+- Stats service tests
+- File upload tests
+- Edge case tests
+- Model validation tests
+- Utility tests
+
+The overall test coverage is around 83%.
