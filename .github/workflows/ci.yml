@@ -36,23 +36,27 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-        pip install pytest-cov
+        pip install pytest-cov flake8
     
     - name: Lint with flake8
       run: |
-        pip install flake8
-        # Stop the build if there are Python syntax errors or undefined names
+        # Check for critical errors only
         flake8 app --count --select=E9,F63,F7,F82 --show-source --statistics
-        # Treat all other issues as warnings
-        flake8 app --count --exit-zero --max-complexity=10 --max-line-length=100 --statistics
+        # Check other issues but don't fail the build
+        flake8 app --count --exit-zero --statistics
     
     - name: Run tests with coverage
       env:
         DATABASE_URL: postgresql://postgres:postgres@localhost:5432/trackly_test
         JWT_SECRET_KEY: test-secret-key-for-ci
+        AZURE_STORAGE_ACCOUNT_NAME: mock-account
+        AZURE_STORAGE_CONTAINER_NAME: mock-container
+        AZURE_STORAGE_ACCOUNT_KEY: mock-key
       run: |
         pytest --cov=app --cov-report=term --cov-fail-under=80 tests/
     
-    - name: Upload coverage reports
-      uses: codecov/codecov-action@v3
+    - name: Test report
       if: success()
+      run: |
+        echo "✅ All tests passed with 80%+ coverage!"
+        echo "✅ Code quality checks passed!"

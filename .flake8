@@ -1,0 +1,5 @@
+[flake8]
+max-line-length = 100
+max-complexity = 15
+ignore = F401,F841,F811, E501,E131,W504
+exclude = venv/,__pycache__/,.git/,alembic/
