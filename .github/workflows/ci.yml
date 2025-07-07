@@ -52,6 +52,10 @@ jobs:
         AZURE_STORAGE_ACCOUNT_NAME: mock-account
         AZURE_STORAGE_CONTAINER_NAME: mock-container
         AZURE_STORAGE_ACCOUNT_KEY: mock-key
+        GOOGLE_CLIENT_ID: mock-google-client-id
+        GOOGLE_CLIENT_SECRET: mock-google-client-secret
+        FRONTEND_URL: http://localhost:5173
+        DISABLE_SCHEDULER: true
       run: |
         pytest --cov=app --cov-report=term --cov-fail-under=80 tests/
     
